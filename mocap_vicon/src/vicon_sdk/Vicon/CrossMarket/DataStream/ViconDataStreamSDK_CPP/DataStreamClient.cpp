@@ -88,7 +88,7 @@ namespace CPP
   Output_Connect Client::Connect( const String & HostName )
   {
     std::shared_ptr< ViconCGStreamClientSDK::ICGClient > pClient( ViconCGStreamClientSDK::ICGClient::CreateCGClient(), 
-                                                                    boost::bind( &ViconCGStreamClientSDK::ICGClient::Destroy, _1 ) );
+                                                                    boost::bind( &ViconCGStreamClientSDK::ICGClient::Destroy, boost::placeholders::_1 ) );
     Output_Connect Output;
     Output.Result = Adapt( m_pClientImpl->m_pCoreClient->Connect( pClient, HostName ) );
     
@@ -101,7 +101,7 @@ namespace CPP
                                                         const String & MulticastIP )
   {
     std::shared_ptr< ViconCGStreamClientSDK::ICGClient > pClient( ViconCGStreamClientSDK::ICGClient::CreateCGClient(), 
-                                                                    boost::bind( &ViconCGStreamClientSDK::ICGClient::Destroy, _1 ) );
+                                                                    boost::bind( &ViconCGStreamClientSDK::ICGClient::Destroy, boost::placeholders::_1 ) );
     Output_ConnectToMulticast Output;
     Output.Result = Adapt( m_pClientImpl->m_pCoreClient->ConnectToMulticast( pClient, LocalIP, MulticastIP ) );
     
