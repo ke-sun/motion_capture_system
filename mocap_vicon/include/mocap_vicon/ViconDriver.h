@@ -95,6 +95,15 @@ class ViconDriver: public MoCapDriverBase {
     // Average time interval between two frames
     double frame_interval;
 
+    // Time stamp of the last frame  
+    double last_time;
+
+    // Counter for the computing frame frequency 
+    int counter = 0;
+
+    // Fixed window size  
+    int window_size = 50;
+
     // A set to hold the model names
     std::set<std::string> model_set;
 
