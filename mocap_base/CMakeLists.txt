@@ -12,6 +12,7 @@ find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(tf2 REQUIRED)
+find_package(tf2_eigen REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(rcutils REQUIRED)
@@ -21,6 +22,7 @@ set(dependencies
     rcutils
     nav_msgs
     tf2
+    tf2_eigen
     geometry_msgs
     Eigen3)
 
