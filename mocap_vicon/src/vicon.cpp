@@ -16,13 +16,20 @@ class ViconNode : public rclcpp::Node
     public:
         ViconNode() : Node("vicon_node")
         {
+            this->declare_parameter("frame_rate", 100);
+            this->get_parameter("frame_rate", frame_rate);
+
+            double time_interval = 1.0/static_cast<double>(frame_rate);
+            time_interval = time_interval*1000;
+            int time = (int)time_interval;
+            
             if(!driver.init())
             {
                 RCLCPP_ERROR(this->get_logger(), "Initialization of the Vicon driver failed");
                 exit(1);
             }
             RCLCPP_INFO(this->get_logger(), "Successfully initialize Vicon connection!");
-            timer = this->create_wall_timer(10ms, std::bind(&ViconNode::timer_callback, this));
+            timer = this->create_wall_timer(std::chrono::milliseconds(time), std::bind(&ViconNode::timer_callback, this));
         }
 
     private:
@@ -30,6 +37,7 @@ class ViconNode : public rclcpp::Node
         {
             driver.run();
         }
+        int frame_rate;
         mocap::ViconDriver driver;
         rclcpp::TimerBase::SharedPtr timer;
         rclcpp::Publisher<std_msgs::msg::String>::SharedPtr publisher;
