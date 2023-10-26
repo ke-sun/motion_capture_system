@@ -21,7 +21,7 @@ class ViconNode : public rclcpp::Node
 
             double time_interval = 1.0/static_cast<double>(frame_rate);
             time_interval = time_interval*1000;
-            int time = (int)time_interval;
+            //int time = (int)time_interval;
             
             if(!driver.init())
             {
@@ -29,7 +29,17 @@ class ViconNode : public rclcpp::Node
                 exit(1);
             }
             RCLCPP_INFO(this->get_logger(), "Successfully initialize Vicon connection!");
-            timer = this->create_wall_timer(std::chrono::milliseconds(time), std::bind(&ViconNode::timer_callback, this));
+            
+	    while (rclcpp::ok())
+	    {
+		    driver.run();
+		    //RCLCPP_INFO(this->get_logger(), "Running");
+	    }
+
+	    RCLCPP_INFO(this->get_logger(), "Shutting Down Vicon");
+	    driver.disconnect();
+	    
+	    // timer = this->create_wall_timer(std::chrono::milliseconds(time), std::bind(&ViconNode::timer_callback, this));
         }
 
     private:
