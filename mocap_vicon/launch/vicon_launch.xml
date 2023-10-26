@@ -1,6 +1,6 @@
 <launch>
     <node name="vicon_launch" pkg="mocap_vicon" exec="mocap_vicon_node" output="screen">
-        <param name="server_address" value=""/>
+        <param name="server_address" value="128.238.39.152"/>
         <param name="frame_rate" value="100"/>
         <param name="max_accel" value="10.0"/>
         <param name="publish_tf" value="false"/>

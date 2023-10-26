@@ -91,8 +91,8 @@ namespace mocap
 
         // Publish raw data from mocap system
         auto pose_raw = geometry_msgs::msg::PoseStamped();
-
-        pose_raw.header.stamp.sec = time;
+        rclcpp::Time time_stamp = rclcpp::Time(static_cast<int64_t>(time * 1e9));
+        pose_raw.header.stamp = time_stamp;
 
         pose_raw.header.frame_id = parent_frame;
 
@@ -123,7 +123,7 @@ namespace mocap
 
         auto odom_filter = nav_msgs::msg::Odometry();
 
-        odom_filter.header.stamp.sec = time;
+        odom_filter.header.stamp = time_stamp;
         odom_filter.header.frame_id = parent_frame;
         odom_filter.child_frame_id = name + "/base_link";
 
