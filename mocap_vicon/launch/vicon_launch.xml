@@ -3,8 +3,8 @@
         <param name="server_address" value="128.238.39.152"/>
         <param name="frame_rate" value="100"/>
         <param name="max_accel" value="10.0"/>
-        <param name="publish_tf" value="false"/>
-        <param name="fixed_frame_id" value="mocap"/>
+        <param name="publish_tf" value="true"/>
+        <param name="fixed_frame_id" value="world"/>
         <!-- <rosparam param="model_list">[]</rosparam> -->
         <!--remap from="vicon/model_name/odom" to="/model_name/odom"/-->
     </node>
