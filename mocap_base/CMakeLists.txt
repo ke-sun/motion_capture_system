@@ -15,6 +15,7 @@ find_package(tf2 REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(Eigen3 REQUIRED)
+find_package(Boost COMPONENTS thread REQUIRED)
 find_package(rcutils REQUIRED)
 
 set(dependencies
@@ -24,7 +25,9 @@ set(dependencies
     tf2
     tf2_eigen
     geometry_msgs
-    Eigen3)
+    Eigen3
+    Boost
+    )
 
 include_directories(include)
 include_directories(SYSTEM ${EIGEN3_INCLUDE_DIRS})
@@ -33,6 +36,7 @@ include_directories(SYSTEM ${EIGEN3_INCLUDE_DIRS})
 add_library(${PROJECT_NAME} SHARED
             src/MoCapDriverBase.cpp
             src/KalmanFilter.cpp)          
+target_link_libraries(${PROJECT_NAME} Boost::thread)
 
 ament_target_dependencies(${PROJECT_NAME} ${dependencies})
 
