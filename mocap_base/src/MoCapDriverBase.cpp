@@ -1,7 +1,3 @@
-#include <nav_msgs/msg/odometry.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-
-#include <tf2_eigen/tf2_eigen.h>
 #include <mocap_base/MoCapDriverBase.h>
 
 using namespace std;

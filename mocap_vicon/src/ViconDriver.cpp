@@ -1,13 +1,3 @@
-#include <ctime>
-#include <eigen3/Eigen/Dense>
-#include <eigen3/Eigen/Geometry>
-#include "rclcpp/rclcpp.hpp"
-#include <tf2_eigen/tf2_eigen.h>
-#include <tf2_ros/transform_broadcaster.h>
-
-#include <tf2/convert.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-
 #include <mocap_vicon/ViconDriver.h>
 
 using namespace std;
