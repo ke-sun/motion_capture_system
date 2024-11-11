@@ -216,7 +216,7 @@ void ViconDriver::handleSubject(const int& sub_idx) {
 
     tf::StampedTransform stamped_transform =
       tf::StampedTransform(tf::Transform(att_tf, pos_tf),
-        ros::Time::now(), fixed_frame_id, subject_name);
+        ros::Time::now(), fixed_frame_id, subject_name + "/odom");
     write_lock.lock();
     tf_publisher.sendTransform(stamped_transform);
     write_lock.unlock();
