@@ -225,7 +225,7 @@ namespace mocap
 
             stamped_transform.header.stamp = t3;
             stamped_transform.header.frame_id = fixed_frame_id;
-            stamped_transform.child_frame_id = subject_name;
+            stamped_transform.child_frame_id = subject_name + "/odom";
 
             stamped_transform.transform.translation.x = pos(0);
             stamped_transform.transform.translation.y = pos(1);
@@ -235,7 +235,6 @@ namespace mocap
             stamped_transform.transform.rotation.x = att.x();
             stamped_transform.transform.rotation.y = att.y();
             stamped_transform.transform.rotation.z = att.z();
-
             
             write_lock.lock();                       
             tf_publisher->sendTransform(stamped_transform);
@@ -245,5 +244,4 @@ namespace mocap
         return;
         
     }
-    
 }
