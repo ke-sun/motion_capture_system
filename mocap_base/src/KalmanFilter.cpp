@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <Eigen/SVD>
 #include <mocap_base/KalmanFilter.h>
 
@@ -62,7 +62,7 @@ bool KalmanFilter::init(const Matrix12d& u_cov,
 
   if (u_sigmas(11) < 1e-10) {
     is_valid = false;
-    ROS_ERROR("Input Cov is close to singular (least singlar value:%f < 1e-7)",
+    RCLCPP_ERROR("Input Cov is close to singular (least singlar value:%f < 1e-7)",
         u_sigmas(11));
   } else {
     input_cov = u_cov;
@@ -70,7 +70,7 @@ bool KalmanFilter::init(const Matrix12d& u_cov,
 
   if (m_sigmas(5) < 1e-10) {
     is_valid = false;
-    ROS_ERROR("Measurement Cov is close to singular (least singlar value:%f < 1e-7)",
+    RCLCPP_ERROR("Measurement Cov is close to singular (least singlar value:%f < 1e-7)",
         m_sigmas(5));
   } else {
     measurement_cov = m_cov;
@@ -78,7 +78,7 @@ bool KalmanFilter::init(const Matrix12d& u_cov,
 
   if (freq < 0) {
     is_valid = false;
-    ROS_ERROR("Invalid frequency for filter (%d < 0)", freq);
+    RCLCPP_ERROR("Invalid frequency for filter (%d < 0)", freq);
   } else {
     msg_interval = 1.0 / static_cast<double>(freq);
   }

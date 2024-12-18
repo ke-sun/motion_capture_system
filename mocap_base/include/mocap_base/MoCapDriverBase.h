@@ -18,6 +18,7 @@
 #define MOCAP_DRIVER_BASE_H
 
 
+#include "rclcpp/rclcpp.hpp"
 #include <map>
 #include <string>
 #include <vector>
@@ -25,8 +26,7 @@
 #include <boost/shared_ptr.hpp>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <ros/ros.h>
-#include <tf/transform_broadcaster.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <mocap_base/KalmanFilter.h>
 
 namespace mocap{
@@ -47,7 +47,7 @@ class Subject {
     /*
      * @brief Constructor and Destructor
      */
-    Subject(ros::NodeHandle* nptr, const std::string& sub_name,
+    Subject(std::shared_ptr<rclcpp::Node> nptr, const std::string& sub_name,
         const std::string& p_frame);
     ~Subject() {}
 
@@ -122,9 +122,9 @@ class Subject {
     // Publisher for the subject
     ros::NodeHandle* nh_ptr;
     std::string parent_frame;
-    ros::Publisher pub_filter;
-    ros::Publisher pub_raw;
-    ros::Publisher pub_points_raw;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_filter;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_raw;
+    rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pub_points_raw;
 };
 
 /*
@@ -139,7 +139,7 @@ class MoCapDriverBase{
      * @brief Constructor
      * @param nh Ros node
      */
-    MoCapDriverBase(const ros::NodeHandle& n):
+    MoCapDriverBase(const std::shared_ptr<rclcpp::Node> n):
       nh             (n),
       frame_rate     (100),
       model_list     (std::vector<std::string>(0)),
@@ -197,7 +197,7 @@ class MoCapDriverBase{
     std::string server_address;
 
     // Ros node
-    ros::NodeHandle nh;
+    std::shared_ptr<rclcpp::Node> nh;
 
     // Frame rate of the mocap system
     int frame_rate;
