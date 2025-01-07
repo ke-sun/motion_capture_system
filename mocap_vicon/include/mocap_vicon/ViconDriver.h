@@ -20,10 +20,12 @@
 #define VICON_DRIVER_H
 
 #include <cmath>
+#include <memory>
 #include <string>
 #include <set>
 #include <boost/thread.hpp>
-#include <ros/ros.h>
+// #include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <mocap_base/MoCapDriverBase.h>
 #include "ViconDataStreamSDK_CPP/DataStreamClient.h" // From Vicon's SDK
 
@@ -38,7 +40,7 @@ class ViconDriver: public MoCapDriverBase {
      * @brief Constructor
      * @param nh Ros node
      */
-    ViconDriver(const ros::NodeHandle& n):
+    ViconDriver(const std::shared_ptr<rclcpp::Node> n):
       MoCapDriverBase   (n),
       client            (new ViconDataStreamSDK::CPP::Client()),
       max_accel         (10.0),

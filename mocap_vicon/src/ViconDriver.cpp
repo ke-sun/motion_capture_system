@@ -30,13 +30,24 @@ namespace mocap {
 
 bool ViconDriver::init() {
 
-  nh.param("server_address", server_address, string("alkaline2"));
-  nh.param("model_list", model_list, vector<string>(0));
-  nh.param("frame_rate", frame_rate, 100);
-  nh.param("max_accel", max_accel, 10.0);
-  nh.param("publish_tf", publish_tf, false);
-  nh.param("publish_pts", publish_pts, true);
-  nh.param("fixed_frame_id", fixed_frame_id, string("mocap"));
+  // this->declare_parameter<std::string>("odom", std::string("odom"));
+  // this->get_parameter("odom", odom_frame_id_);
+
+  this->nh.declare_parameter<string>("server_address", server_address, string("alkaline2"));
+  this->nh.declare_parameter<vector<string>>("model_list", model_list, vector<string>(0));
+  this->nh.declare_parameter<int>("frame_rate", frame_rate, 100);
+  this->nh.declare_parameter<float>("max_accel", max_accel, 10.0);
+  this->nh.declare_parameter<bool>("publish_tf", publish_tf, false);
+  this->nh.declare_parameter<bool>("publish_pts", publish_pts, true);
+  this->nh.declare_parameter<string>("fixed_frame_id", fixed_frame_id, string("mocap"));
+
+  this->nh.get_parameter("server_address", server_address);
+  this->nh.get_parameter("model_list", model_list);
+  this->nh.get_parameter("frame_rate", frame_rate);
+  this->nh.get_parameter("max_accel", max_accel);
+  this->nh.get_parameter("publish_tf", publish_tf);
+  this->nh.get_parameter("publish_pts", publish_pts);
+  this->nh.get_parameter("fixed_frame_id", fixed_frame_id);
 
   frame_interval = 1.0 / static_cast<double>(frame_rate);
   double& dt = frame_interval;
