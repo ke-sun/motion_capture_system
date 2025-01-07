@@ -14,156 +14,160 @@
  * limitations under the License.
  */
 
-#include <nav_msgs/Odometry.h>
-#include <geometry_msgs/PoseStamped.h>
-#include <geometry_msgs/PoseArray.h>
-#include <geometry_msgs/Pose.h>
-#include <eigen_conversions/eigen_msg.h>
 #include <mocap_base/MoCapDriverBase.h>
+#include <nav_msgs/msg/odometry.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_array.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+#include <tf2_eigen/tf2_eigen.hpp>
 
 using namespace std;
 using namespace Eigen;
 
 namespace mocap {
 
-Subject::Subject(ros::NodeHandle* nptr, const string& sub_name,
-    const std::string& p_frame):
-  name         (sub_name),
-  status       (LOST),
-  nh_ptr       (nptr),
-  parent_frame (p_frame){
-
-  pub_filter = nh_ptr->advertise<nav_msgs::Odometry>(name+"/odom", 10);
-  pub_raw = nh_ptr->advertise<geometry_msgs::PoseStamped>(name+"/pose", 10);
-  pub_points_raw = nh_ptr->advertise<geometry_msgs::PoseArray>(name+"/individual_marker_array", 10);
-  return;
-}
-
-// Get and set name of the subject
-const string& Subject::getName() {
-  boost::shared_lock<boost::shared_mutex> read_lock(mtx);
-  return name;
-}
-void Subject::setName(const string& sub_name) {
-  boost::unique_lock<boost::shared_mutex> write_lock(mtx);
-  name = sub_name;
-}
-
-// Enable or diable the subject
-const Subject::Status& Subject::getStatus() {
-  boost::shared_lock<boost::shared_mutex> read_lock(mtx);
-  return status;
-}
-void Subject::enable() {
-  boost::unique_lock<boost::shared_mutex> write_lock(mtx);
-  status = INITIALIZING;
-}
-void Subject::disable() {
-  boost::unique_lock<boost::shared_mutex> write_lock(mtx);
-  kFilter.reset();
-  status = LOST;
-}
-
-// Get the state of the subject
-const Quaterniond& Subject::getAttitude() {
-  boost::shared_lock<boost::shared_mutex> read_lock(mtx);
-  return kFilter.attitude;
-}
-const Vector3d& Subject::getPosition() {
-  boost::shared_lock<boost::shared_mutex> read_lock(mtx);
-  return kFilter.position;
-}
-const Vector3d& Subject::getAngularVel() {
-  boost::shared_lock<boost::shared_mutex> read_lock(mtx);
-  return kFilter.angular_vel;
-}
-const Vector3d& Subject::getLinearVel() {
-  boost::shared_lock<boost::shared_mutex> read_lock(mtx);
-  return kFilter.linear_vel;
-}
-
-// Set the noise parameter for the kalman filter
-bool Subject::setParameters(
-    const Matrix<double, 12, 12>& u_cov,
-    const Matrix<double, 6, 6>& m_cov,
-    const int& freq) {
-  boost::unique_lock<boost::shared_mutex> write_lock(mtx);
-  return kFilter.init(u_cov, m_cov, freq);
-}
-
-// Process the new measurement
-void Subject::processNewMeasurement(
-    const double& time,
-    const Quaterniond& m_attitude,
-    const Vector3d& m_position) {
-
-  boost::unique_lock<boost::shared_mutex> write_lock(mtx);
-
-  // Publish raw data from mocap system
-  geometry_msgs::PoseStamped pose_raw;
-  pose_raw.header.stamp = ros::Time(time);
-  pose_raw.header.frame_id = parent_frame;
-  tf::quaternionEigenToMsg(m_attitude, pose_raw.pose.orientation);
-  tf::pointEigenToMsg(m_position, pose_raw.pose.position);
-  pub_raw.publish(pose_raw);
-
-  if (!kFilter.isReady()) {
-    status = INITIALIZING;
-    kFilter.prepareInitialCondition(time, m_attitude, m_position);
-    return;
-  }
-
-  status = TRACKED;
-  // Perfrom the kalman filter
-  kFilter.prediction(time);
-  kFilter.update(m_attitude, m_position);
-
-  // Publish the new state
-  nav_msgs::Odometry odom_filter;
-  odom_filter.header.stamp = ros::Time(time);
-  odom_filter.header.frame_id = parent_frame;
-  odom_filter.child_frame_id = name + "/base_link";
-  tf::quaternionEigenToMsg(kFilter.attitude, odom_filter.pose.pose.orientation);
-  tf::pointEigenToMsg(kFilter.position, odom_filter.pose.pose.position);
-  tf::vectorEigenToMsg(kFilter.angular_vel, odom_filter.twist.twist.angular);
-  tf::vectorEigenToMsg(kFilter.linear_vel, odom_filter.twist.twist.linear);
-  // To be compatible with the covariance in ROS, we have to do some shifting
-  Map<Matrix<double, 6, 6, RowMajor> > pose_cov(odom_filter.pose.covariance.begin());
-  Map<Matrix<double, 6, 6, RowMajor> > vel_cov(odom_filter.twist.covariance.begin());
-  pose_cov.topLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(3, 3);
-  pose_cov.topRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(3, 0);
-  pose_cov.bottomLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(0, 3);
-  pose_cov.bottomRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(0, 0);
-  vel_cov.topLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(9, 9);
-  vel_cov.topRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(9, 6);
-  vel_cov.bottomLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(6, 9);
-  vel_cov.bottomRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(6, 6);
-
-  pub_filter.publish(odom_filter);
-
-  return;
-}
-
-void Subject::publishMarkerPoints(
-    const double& time,
-    const std::vector<std::array<double,3>> marker_pos) {
-  geometry_msgs::PoseArray poses;
-
-  for (auto i: marker_pos) {
-    poses.header.stamp = ros::Time(time);
-    poses.header.frame_id = parent_frame;
-    geometry_msgs::Pose pose;
-    pose.position.x = i[0];
-    pose.position.y = i[1];
-    pose.position.z = i[2];
-    pose.orientation.x = 0;
-    pose.orientation.y = 0;
-    pose.orientation.z = 0;
-    pose.orientation.w = 1;
-    poses.poses.push_back(pose);
-
-  }
-  pub_points_raw.publish(poses);
-}
+// Subject::Subject(std::shared_ptr<rclcpp::Node> nptr, const string& sub_name,
+//     const std::string& p_frame):
+//   name         (sub_name),
+//   status       (LOST),
+//   nh_ptr       (nptr),
+//   parent_frame (p_frame){
+// 
+//   pub_filter = nh_ptr->create_publisher<nav_msgs::msg::Odometry>(name+"/odom", 10);
+//   pub_raw = nh_ptr->create_publisher<geometry_msgs::msg::PoseStamped>(name+"/pose", 10);
+//   pub_points_raw = nh_ptr->create_publisher<geometry_msgs::msg::PoseArray>(name+"/individual_marker_array", 10);
+//   return;
+// }
+// 
+// // Get and set name of the subject
+// const string& Subject::getName() {
+//   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
+//   return name;
+// }
+// void Subject::setName(const string& sub_name) {
+//   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
+//   name = sub_name;
+// }
+// 
+// // Enable or diable the subject
+// const Subject::Status& Subject::getStatus() {
+//   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
+//   return status;
+// }
+// void Subject::enable() {
+//   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
+//   status = INITIALIZING;
+// }
+// void Subject::disable() {
+//   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
+//   kFilter.reset();
+//   status = LOST;
+// }
+// 
+// // Get the state of the subject
+// const Quaterniond& Subject::getAttitude() {
+//   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
+//   return kFilter.attitude;
+// }
+// const Vector3d& Subject::getPosition() {
+//   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
+//   return kFilter.position;
+// }
+// const Vector3d& Subject::getAngularVel() {
+//   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
+//   return kFilter.angular_vel;
+// }
+// const Vector3d& Subject::getLinearVel() {
+//   boost::shared_lock<boost::shared_mutex> read_lock(mtx);
+//   return kFilter.linear_vel;
+// }
+// 
+// // Set the noise parameter for the kalman filter
+// bool Subject::setParameters(
+//     const Matrix<double, 12, 12>& u_cov,
+//     const Matrix<double, 6, 6>& m_cov,
+//     const int& freq) {
+//   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
+//   return kFilter.init(u_cov, m_cov, freq);
+// }
+// 
+// // Process the new measurement
+// void Subject::processNewMeasurement(
+//     const double& time,
+//     const Quaterniond& m_attitude,
+//     const Vector3d& m_position) {
+// 
+//   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
+// 
+//   // Publish raw data from mocap system
+//   geometry_msgs::msg::PoseStamped pose_raw;
+//   // time is a double that was converted from Time to Double with toSec()
+//   pose_raw.header.stamp = rclcpp::Time(time * 1e9);
+//   pose_raw.header.frame_id = parent_frame;
+//   tf::quaternionEigenToMsg(m_attitude, pose_raw.pose.orientation);
+//   tf::pointEigenToMsg(m_position, pose_raw.pose.position);
+//   pub_raw.publish(pose_raw);
+// 
+//   if (!kFilter.isReady()) {
+//     status = INITIALIZING;
+//     kFilter.prepareInitialCondition(time, m_attitude, m_position);
+//     return;
+//   }
+// 
+//   status = TRACKED;
+//   // Perfrom the kalman filter
+//   kFilter.prediction(time);
+//   kFilter.update(m_attitude, m_position);
+// 
+//   // Publish the new state
+//   nav_msgs::msg::Odometry odom_filter;
+//   // time is a double that was converted from Time to Double with toSec()
+//   odom_filter.header.stamp = rclcpp::Time(time * 1e9);
+//   odom_filter.header.frame_id = parent_frame;
+//   odom_filter.child_frame_id = name + "/base_link";
+//   tf::quaternionEigenToMsg(kFilter.attitude, odom_filter.pose.pose.orientation);
+//   tf::pointEigenToMsg(kFilter.position, odom_filter.pose.pose.position);
+//   tf::vectorEigenToMsg(kFilter.angular_vel, odom_filter.twist.twist.angular);
+//   tf::vectorEigenToMsg(kFilter.linear_vel, odom_filter.twist.twist.linear);
+//   // To be compatible with the covariance in ROS, we have to do some shifting
+//   Map<Matrix<double, 6, 6, RowMajor> > pose_cov(odom_filter.pose.covariance.begin());
+//   Map<Matrix<double, 6, 6, RowMajor> > vel_cov(odom_filter.twist.covariance.begin());
+//   pose_cov.topLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(3, 3);
+//   pose_cov.topRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(3, 0);
+//   pose_cov.bottomLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(0, 3);
+//   pose_cov.bottomRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(0, 0);
+//   vel_cov.topLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(9, 9);
+//   vel_cov.topRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(9, 6);
+//   vel_cov.bottomLeftCorner<3, 3>() = kFilter.state_cov.block<3, 3>(6, 9);
+//   vel_cov.bottomRightCorner<3, 3>() = kFilter.state_cov.block<3, 3>(6, 6);
+// 
+//   pub_filter.publish(odom_filter);
+// 
+//   return;
+// }
+// 
+// void Subject::publishMarkerPoints(
+//     const double& time,
+//     const std::vector<std::array<double,3>> marker_pos) {
+//   geometry_msgs::msg::PoseArray poses;
+// 
+//   for (auto i: marker_pos) {
+// 
+//     // time is a double that was converted from Time to Double with toSec()
+//     poses.header.stamp = rclcpp::Time(time * 1e9);
+//     poses.header.frame_id = parent_frame;
+//     geometry_msgs::msg::Pose pose;
+//     pose.position.x = i[0];
+//     pose.position.y = i[1];
+//     pose.position.z = i[2];
+//     pose.orientation.x = 0;
+//     pose.orientation.y = 0;
+//     pose.orientation.z = 0;
+//     pose.orientation.w = 1;
+//     poses.poses.push_back(pose);
+// 
+//   }
+//   pub_points_raw.publish(poses);
+// }
 
 } // namespace

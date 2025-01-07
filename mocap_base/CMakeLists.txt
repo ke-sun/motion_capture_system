@@ -1,59 +1,73 @@
-cmake_minimum_required(VERSION 2.8.3)
+cmake_minimum_required(VERSION 3.8)
 project(mocap_base)
 
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_LIST_DIR}/cmake")
+if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
 
+# Find dependencies
+find_package(ament_cmake REQUIRED)
+find_package(rclcpp REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
-find_package(catkin REQUIRED COMPONENTS
-  roscpp
-  geometry_msgs
-  eigen_conversions
-)
+find_package(geometry_msgs REQUIRED)
+find_package(tf2_eigen REQUIRED)
+find_package(nav_msgs REQUIRED)
 
-catkin_package(
-  INCLUDE_DIRS include
-  LIBRARIES mocap_base_driver mocap_kalman_filter
-  CATKIN_DEPENDS
-    geometry_msgs
-  DEPENDS
-  Boost EIGEN3
-)
-
+# Include directories
 include_directories(
   include
-  ${catkin_INCLUDE_DIRS}
-  ${EIGEN3_INCLUDE_DIRS}
+  ${Eigen3_INCLUDE_DIRS}
+  ${Boost_INCLUDE_DIRS}
 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wall")
-
+# Kalman Filter Library
 add_library(mocap_kalman_filter
   src/KalmanFilter.cpp
 )
-target_link_libraries(mocap_kalman_filter
-  ${catkin_LIBRARIES}
-)
-add_dependencies(mocap_kalman_filter
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
-)
 
+target_link_libraries(mocap_kalman_filter
+  ${Boost_LIBRARIES}
+  Eigen3::Eigen
+  rclcpp
+)
+ament_target_dependencies(mocap_kalman_filter Eigen3 rclcpp)
+
+# MoCap Driver Library
 add_library(mocap_base_driver
   src/MoCapDriverBase.cpp
 )
+
 target_link_libraries(mocap_base_driver
-  ${catkin_LIBRARIES}
   mocap_kalman_filter
 )
-add_dependencies(mocap_base_driver
-  ${${PROJECT_NAME}_EXPORTED_TARGETS}
-  ${catkin_EXPORTED_TARGETS}
+
+ament_target_dependencies(mocap_base_driver
+  rclcpp
+  geometry_msgs
+  tf2_eigen
+  nav_msgs
 )
 
-install(DIRECTORY include/ DESTINATION include)
 install(TARGETS mocap_base_driver mocap_kalman_filter
-   ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-   RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+  DESTINATION lib/${PROJECT_NAME}
 )
+install(DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}
+)
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  # the following line skips the linter which checks for copyrights
+  # comment the line when a copyright and license is added to all source files
+  set(ament_cmake_copyright_FOUND TRUE)
+  # the following line skips cpplint (only works in a git repo)
+  # comment the line when this package is in a git repo and when
+  # a copyright and license is added to all source files
+  set(ament_cmake_cpplint_FOUND TRUE)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
+ament_package()
+
+
