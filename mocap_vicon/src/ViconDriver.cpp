@@ -66,7 +66,7 @@ bool ViconDriver::init() {
   ts_sleep.tv_nsec = 100000000;
 
   // Connect to the server
-  ROS_INFO("Connecting to Vicon Datastream server at %s", server_address.c_str());
+  RCLCPP_INFO(this->nh.get_logger, "Connecting to Vicon Datastream server at %s", server_address.c_str());
   bool is_connected = false;
   for (int retry_cnt = 0; retry_cnt < 10; ++retry_cnt) {
     client->Connect(server_address);
@@ -80,21 +80,21 @@ bool ViconDriver::init() {
 
   // Report if cannot connect
   if (!is_connected) {
-    ROS_WARN("Cannot Connect to Vicon server at %s", server_address.c_str());
+    RCLCPP_WARN(this->nh.get_logger, "Cannot Connect to Vicon server at %s", server_address.c_str());
     return false;
   }
 
   // Configure the connection
-  ROS_INFO("Successfully Connect to Vicon server at %s", server_address.c_str());
+  RCLCPP_INFO(this->nh.get_logger, "Successfully Connect to Vicon server at %s", server_address.c_str());
   client->SetStreamMode(ViconSDK::StreamMode::ClientPull);
   client->SetAxisMapping(ViconSDK::Direction::Forward,
       ViconSDK::Direction::Left, ViconSDK::Direction::Up);
   client->EnableSegmentData();
   if(!client->IsSegmentDataEnabled().Enabled) {
-    ROS_WARN("Segment data cannot be enabled.");
+    RCLCPP_WARN(this->nh.get_logger, "Segment data cannot be enabled.");
     return false;
   }
-  ROS_INFO("Successfully configure Vicon server at %s", server_address.c_str());
+  RCLCPP_INFO(this->nh.get_logger, "Successfully configure Vicon server at %s", server_address.c_str());
 
   // Need to wait for some time after enabling data else you get junk frames
   //struct timespec ts_sleep;
@@ -114,7 +114,7 @@ void ViconDriver::run() {
 }
 
 void ViconDriver::disconnect() {
-  ROS_INFO_STREAM("Disconnected with the server at "
+  RCLCPP_INFO_STREAM(this->nh.get_logger, "Disconnected with the server at "
       << server_address);
   client->Disconnect();
   return;
@@ -155,9 +155,9 @@ void ViconDriver::handleFrame() {
       it != subjects.end(); ++it) {
     Subject::Status status = it->second->getStatus();
     if (status == Subject::LOST)
-      ROS_WARN_THROTTLE(1, "Lose track of subject %s", (it->first).c_str());
+      RCLCPP_WARN_THROTTLE(this->nh.get_logger, 1, "Lose track of subject %s", (it->first).c_str());
     else if (status == Subject::INITIALIZING)
-      ROS_WARN("Initialize subject %s", (it->first).c_str());
+      RCLCPP_WARN(this->nh.get_logger, "Initialize subject %s", (it->first).c_str());
   }
 
   return;
