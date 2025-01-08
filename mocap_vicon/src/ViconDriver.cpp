@@ -19,7 +19,9 @@
 #include <ctime>
 #include <Eigen/Dense>
 #include <Eigen/Geometry>
-#include <tf_conversions/tf_eigen.h>
+// #include <tf_conversions/tf_eigen.h>
+#include <tf2_eigen/tf2_eigen.hpp>
+#include <tf2_ros/static_transform_broadcaster.h>
 #include <mocap_vicon/ViconDriver.h>
 
 using namespace std;
@@ -30,24 +32,21 @@ namespace mocap {
 
 bool ViconDriver::init() {
 
-  // this->declare_parameter<std::string>("odom", std::string("odom"));
-  // this->get_parameter("odom", odom_frame_id_);
+  server_address = this->nh->declare_parameter<string>("server_address", string("alkaline2"));
+  model_list = this->nh->declare_parameter<vector<string>>("model_list", vector<string>(0));
+  frame_rate = this->nh->declare_parameter<int>("frame_rate", 100);
+  max_accel = this->nh->declare_parameter<float>("max_accel", 10.0);
+  publish_tf = this->nh->declare_parameter<bool>("publish_tf", false);
+  publish_pts = this->nh->declare_parameter<bool>("publish_pts", true);
+  fixed_frame_id = this->nh->declare_parameter<string>("fixed_frame_id", string("mocap"));
 
-  this->nh.declare_parameter<string>("server_address", server_address, string("alkaline2"));
-  this->nh.declare_parameter<vector<string>>("model_list", model_list, vector<string>(0));
-  this->nh.declare_parameter<int>("frame_rate", frame_rate, 100);
-  this->nh.declare_parameter<float>("max_accel", max_accel, 10.0);
-  this->nh.declare_parameter<bool>("publish_tf", publish_tf, false);
-  this->nh.declare_parameter<bool>("publish_pts", publish_pts, true);
-  this->nh.declare_parameter<string>("fixed_frame_id", fixed_frame_id, string("mocap"));
-
-  this->nh.get_parameter("server_address", server_address);
-  this->nh.get_parameter("model_list", model_list);
-  this->nh.get_parameter("frame_rate", frame_rate);
-  this->nh.get_parameter("max_accel", max_accel);
-  this->nh.get_parameter("publish_tf", publish_tf);
-  this->nh.get_parameter("publish_pts", publish_pts);
-  this->nh.get_parameter("fixed_frame_id", fixed_frame_id);
+  this->nh->get_parameter("server_address", server_address);
+  this->nh->get_parameter("model_list", model_list);
+  this->nh->get_parameter("frame_rate", frame_rate);
+  this->nh->get_parameter("max_accel", max_accel);
+  this->nh->get_parameter("publish_tf", publish_tf);
+  this->nh->get_parameter("publish_pts", publish_pts);
+  this->nh->get_parameter("fixed_frame_id", fixed_frame_id);
 
   frame_interval = 1.0 / static_cast<double>(frame_rate);
   double& dt = frame_interval;
@@ -66,7 +65,7 @@ bool ViconDriver::init() {
   ts_sleep.tv_nsec = 100000000;
 
   // Connect to the server
-  RCLCPP_INFO(this->nh.get_logger, "Connecting to Vicon Datastream server at %s", server_address.c_str());
+  RCLCPP_INFO(this->nh->get_logger(), "Connecting to Vicon Datastream server at %s", server_address.c_str());
   bool is_connected = false;
   for (int retry_cnt = 0; retry_cnt < 10; ++retry_cnt) {
     client->Connect(server_address);
@@ -80,21 +79,21 @@ bool ViconDriver::init() {
 
   // Report if cannot connect
   if (!is_connected) {
-    RCLCPP_WARN(this->nh.get_logger, "Cannot Connect to Vicon server at %s", server_address.c_str());
+    RCLCPP_WARN(this->nh->get_logger(), "Cannot Connect to Vicon server at %s", server_address.c_str());
     return false;
   }
 
   // Configure the connection
-  RCLCPP_INFO(this->nh.get_logger, "Successfully Connect to Vicon server at %s", server_address.c_str());
+  RCLCPP_INFO(this->nh->get_logger(), "Successfully Connect to Vicon server at %s", server_address.c_str());
   client->SetStreamMode(ViconSDK::StreamMode::ClientPull);
   client->SetAxisMapping(ViconSDK::Direction::Forward,
       ViconSDK::Direction::Left, ViconSDK::Direction::Up);
   client->EnableSegmentData();
   if(!client->IsSegmentDataEnabled().Enabled) {
-    RCLCPP_WARN(this->nh.get_logger, "Segment data cannot be enabled.");
+    RCLCPP_WARN(this->nh->get_logger(), "Segment data cannot be enabled.");
     return false;
   }
-  RCLCPP_INFO(this->nh.get_logger, "Successfully configure Vicon server at %s", server_address.c_str());
+  RCLCPP_INFO(this->nh->get_logger(), "Successfully configure Vicon server at %s", server_address.c_str());
 
   // Need to wait for some time after enabling data else you get junk frames
   //struct timespec ts_sleep;
@@ -114,7 +113,7 @@ void ViconDriver::run() {
 }
 
 void ViconDriver::disconnect() {
-  RCLCPP_INFO_STREAM(this->nh.get_logger, "Disconnected with the server at "
+  RCLCPP_INFO_STREAM(this->nh->get_logger(), "Disconnected with the server at "
       << server_address);
   client->Disconnect();
   return;
@@ -135,7 +134,7 @@ void ViconDriver::handleFrame() {
       // Create a new subject if it does not exist
       if (subjects.find(subject_name) == subjects.end()) {
         subjects[subject_name] = Subject::SubjectPtr(
-            new Subject(&nh, subject_name, fixed_frame_id));
+            new Subject(nh, subject_name, fixed_frame_id));
         subjects[subject_name]->setParameters(
             process_noise, measurement_noise, frame_rate);
       }
@@ -155,9 +154,9 @@ void ViconDriver::handleFrame() {
       it != subjects.end(); ++it) {
     Subject::Status status = it->second->getStatus();
     if (status == Subject::LOST)
-      RCLCPP_WARN_THROTTLE(this->nh.get_logger, 1, "Lose track of subject %s", (it->first).c_str());
+      RCLCPP_WARN_THROTTLE(this->nh->get_logger(), *this->nh->get_clock(), 1, "Lose track of subject %s", (it->first).c_str());
     else if (status == Subject::INITIALIZING)
-      RCLCPP_WARN(this->nh.get_logger, "Initialize subject %s", (it->first).c_str());
+      RCLCPP_WARN(this->nh->get_logger(), "Initialize subject %s", (it->first).c_str());
   }
 
   return;
@@ -168,7 +167,7 @@ void ViconDriver::handleSubject(const int& sub_idx) {
   boost::unique_lock<boost::shared_mutex> write_lock(mtx);
   // We assume each subject has only one segment
   string subject_name = client->GetSubjectName(sub_idx).SubjectName;
-  double time = ros::Time::now().toSec();
+  double time = this->nh->get_clock()->now().seconds();
 
   // Publish individual points of each marker
   if (publish_pts) {
@@ -241,16 +240,38 @@ void ViconDriver::handleSubject(const int& sub_idx) {
 
     Quaterniond att = subjects[subject_name]->getAttitude();
     Vector3d pos = subjects[subject_name]->getPosition();
-    tf::Quaternion att_tf;
-    tf::Vector3 pos_tf;
-    tf::quaternionEigenToTF(att, att_tf);
-    tf::vectorEigenToTF(pos, pos_tf);
+    tf2::Quaternion att_tf;
+    tf2::Vector3 pos_tf;
+    att_tf.setX(att.x());
+    att_tf.setY(att.y());
+    att_tf.setZ(att.z());
+    att_tf.setW(att.w());
 
-    tf::StampedTransform stamped_transform =
-      tf::StampedTransform(tf::Transform(att_tf, pos_tf),
-        ros::Time::now(), fixed_frame_id, subject_name);
+    pos_tf.setX(pos.x());
+    pos_tf.setY(pos.y());
+    pos_tf.setZ(pos.z());
+
+    // tf2::StampedTransform stamped_transform =
+    //   tf2::StampedTransform(tf2::Transform(att_tf, pos_tf),
+    //     this->nh->get_clock()->now(), fixed_frame_id, subject_name);
+
+    geometry_msgs::msg::TransformStamped stamped_transform;
+    stamped_transform.header.stamp = this->nh->get_clock()->now();
+    stamped_transform.header.frame_id = fixed_frame_id;
+    stamped_transform.child_frame_id = subject_name;
+    stamped_transform.transform.translation.x = pos_tf.x();
+    stamped_transform.transform.translation.y = pos_tf.y();
+    stamped_transform.transform.translation.z = pos_tf.z();
+    stamped_transform.transform.rotation.x = att_tf.x();
+    stamped_transform.transform.rotation.y = att_tf.y();
+    stamped_transform.transform.rotation.z = att_tf.z();
+
+    
+    
     write_lock.lock();
-    tf_publisher.sendTransform(stamped_transform);
+    static tf2_ros::StaticTransformBroadcaster static_broadcaster(nh);
+    static_broadcaster.sendTransform(stamped_transform);
+    //tf_publisher.sendTransform(stamped_transform);
     write_lock.unlock();
   }
 

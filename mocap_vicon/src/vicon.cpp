@@ -16,28 +16,28 @@
  * limitations under the License.
  */
 
-#include <ros/ros.h>
+#include "rclcpp/rclcpp.hpp"
 #include <mocap_vicon/ViconDriver.h>
 
 int main(int argc, char *argv[]) {
 
-  ros::init(argc, argv, "vicon");
-  ros::NodeHandle nh("~");
+  rclcpp::init(argc, argv);
+  std::shared_ptr<rclcpp::Node> nh;
 
   mocap::ViconDriver driver(nh);
   if(!driver.init()) {
-    ROS_ERROR("Initialization of the Vicon driver failed");
+    RCLCPP_ERROR(nh->get_logger(), "Initialization of the Vicon driver failed");
     return -1;
   }
-  ROS_INFO("Successfully initialize Vicon connection!");
+  RCLCPP_INFO(nh->get_logger(), "Successfully initialize Vicon connection!");
 
-  while(ros::ok())
+  while(rclcpp::ok())
   {
     driver.run();
-    ros::spinOnce();
+    rclcpp::spin_some(nh);
   }
 
-  ROS_INFO("Shutting down");
+  // ROS_INFO("Shutting down");
   driver.disconnect();
 
   return 0;

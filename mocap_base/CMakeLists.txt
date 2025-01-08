@@ -11,6 +11,7 @@ find_package(rclcpp REQUIRED)
 find_package(Boost REQUIRED)
 find_package(Eigen3 REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(tf2_ros REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(nav_msgs REQUIRED)
 
@@ -42,6 +43,7 @@ ament_target_dependencies(mocap_base_driver
   rclcpp
   geometry_msgs
   tf2_eigen
+  tf2_ros
   nav_msgs
 )
 
@@ -49,12 +51,15 @@ target_link_libraries(mocap_base_driver
   mocap_kalman_filter
   rclcpp
   geometry_msgs
-  tf2_eigen
   nav_msgs
 )
 
 install(TARGETS mocap_base_driver mocap_kalman_filter
   DESTINATION lib/${PROJECT_NAME}
+)
+install(
+  DIRECTORY include/
+  DESTINATION include
 )
 
 if(BUILD_TESTING)
@@ -69,6 +74,7 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
+ament_export_include_directories(include)
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 ament_package()
 

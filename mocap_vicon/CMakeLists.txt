@@ -1,17 +1,21 @@
-cmake_minimum_required(VERSION 3.8)
+cmake_minimum_required(VERSION 3.5)
 project(mocap_vicon)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(tf2_eigen REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(mocap_base REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 find_package(Boost REQUIRED COMPONENTS thread chrono)
 find_package(Eigen3 REQUIRED)
+
 # find_package(catkin REQUIRED COMPONENTS
 #   roscpp
 #   geometry_msgs
@@ -27,6 +31,7 @@ include_directories(
   include
   ${Eigen3_INCLUDE_DIRS}
   ${Boost_INCLUDE_DIRS}
+  ${mocap_base_INCLUDE_DIRS}
 )
 
 
@@ -35,22 +40,31 @@ add_subdirectory(src/vicon_sdk)
 add_library(mocap_vicon_driver
   src/ViconDriver.cpp
 )
+
+ament_target_dependencies(mocap_vicon_driver mocap_base Eigen3 rclcpp tf2_eigen mocap_base geometry_msgs nav_msgs)
+
 target_link_libraries(mocap_vicon_driver
   ViconDataStreamSDK_CPP
   ${VICON_BOOST_LIBS}
-  ${catkin_LIBRARIES}
+  Eigen3::Eigen
 )
-ament_target_dependencies(mocap_vicon_driver Eigen3 rclcpp)
+
 
 add_executable(mocap_vicon_node
   src/vicon.cpp
 )
 
+ament_target_dependencies(mocap_vicon_node Eigen3 rclcpp tf2_eigen  geometry_msgs nav_msgs)
+
 target_link_libraries(mocap_vicon_node
   mocap_vicon_driver
+  ViconDataStreamSDK_CPP
+  ${VICON_BOOST_LIBS}
+  Eigen3::Eigen
 )
 
-install(TARGETS mocap_vicon_driver 
+
+install(TARGETS mocap_vicon_node mocap_vicon_driver 
   DESTINATION lib/${PROJECT_NAME}
 )
 
