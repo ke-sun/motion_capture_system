@@ -28,103 +28,108 @@
 #include <tf2_ros/transform_broadcaster.h>
 #include <mocap_base/KalmanFilter.h>
 
+#include <nav_msgs/msg/odometry.hpp>
+#include <geometry_msgs/msg/pose_stamped.hpp>
+#include <geometry_msgs/msg/pose_array.hpp>
+#include <geometry_msgs/msg/pose.hpp>
+
 namespace mocap{
 
 /*
  * @brief Subject Defines attributes of a rigid body
  */
-// class Subject {
-//   public:
-//      EIGEN_MAKE_ALIGNED_OPERATOR_NEW
-//      
-//     enum Status {
-//       LOST,
-//       INITIALIZING,
-//       TRACKED
-//     };
-// 
-//     /*
-//      * @brief Constructor and Destructor
-//      */
-//     Subject(std::shared_ptr<rclcpp::Node> nptr, const std::string& sub_name,
-//         const std::string& p_frame);
-//     ~Subject() {}
-// 
-//     /*
-//      * @brief getName setName
-//      *    Get and set the name of the object
-//      */
-//     const std::string& getName();
-//     void setName(const std::string& sub_name);
-//     /*
-//      * @brief isActive Tells if the object is still active or not
-//      */
-//     const Status& getStatus();
-//     void enable();
-//     void disable();
-//     /*
-//      * @brief getAttitude getPosition getAngularVel getLinearVel
-//      *    Returns the state of the object
-//      */
-//     const Eigen::Quaterniond& getAttitude();
-//     const Eigen::Vector3d& getPosition();
-//     const Eigen::Vector3d& getAngularVel();
-//     const Eigen::Vector3d& getLinearVel();
-// 
-//     /*
-//      * @brief setNoiseParameter Set noise parameters for
-//      *    the kalman filter
-//      * @param u_cov Input noise
-//      * @param m_cov Measurement noise
-//      * @return True if success
-//      */
-//     bool setParameters(
-//         const Eigen::Matrix<double, 12, 12>& u_cov,
-//         const Eigen::Matrix<double, 6, 6>& m_cov,
-//         const int& freq);
-// 
-//     /*
-//      * @brief processNewMeasurement Process new measurements
-//      *    from the mocap system
-//      * @param m_attitude Measured attitude
-//      * @param m_position Measured position
-//      */
-//     void processNewMeasurement(
-//         const double& time,
-//         const Eigen::Quaterniond& m_attitude,
-//         const Eigen::Vector3d& m_position);
-// 
-//     void publishMarkerPoints(
-//         const double& time,
-//         const std::vector<std::array<double,3>> marker_pos);
-// 
-//     typedef boost::shared_ptr<Subject> SubjectPtr;
-//     typedef const boost::shared_ptr<Subject> SubjectConstPtr;
-// 
-//   private:
-//     // Disable copy constructor and assign operator
-//     Subject(const Subject&);
-//     Subject& operator=(const Subject&);
-// 
-//     // Name of the subject
-//     std::string name;
-// 
-//     // Error state Kalman filter
-//     KalmanFilter kFilter;
-// 
-//     // Tells the status of the object
-//     Status status;
-// 
-//     // Prevent cocurrent reading and writing of the class
-//     boost::shared_mutex mtx;
-// 
-//     // Publisher for the subject
-//     ros::NodeHandle* nh_ptr;
-//     std::string parent_frame;
-//     rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_filter;
-//     rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_raw;
-//     rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pub_points_raw;
-// };
+class Subject {
+  public:
+     EIGEN_MAKE_ALIGNED_OPERATOR_NEW
+     
+    enum Status {
+      LOST,
+      INITIALIZING,
+      TRACKED
+    };
+
+    /*
+     * @brief Constructor and Destructor
+     */
+    Subject(std::shared_ptr<rclcpp::Node> nptr, const std::string& sub_name,
+        const std::string& p_frame);
+    ~Subject() {}
+
+    /*
+     * @brief getName setName
+     *    Get and set the name of the object
+     */
+    const std::string& getName();
+    void setName(const std::string& sub_name);
+    /*
+     * @brief isActive Tells if the object is still active or not
+     */
+    const Status& getStatus();
+    void enable();
+    void disable();
+    /*
+     * @brief getAttitude getPosition getAngularVel getLinearVel
+     *    Returns the state of the object
+     */
+    const Eigen::Quaterniond& getAttitude();
+    const Eigen::Vector3d& getPosition();
+    const Eigen::Vector3d& getAngularVel();
+    const Eigen::Vector3d& getLinearVel();
+
+    /*
+     * @brief setNoiseParameter Set noise parameters for
+     *    the kalman filter
+     * @param u_cov Input noise
+     * @param m_cov Measurement noise
+     * @return True if success
+     */
+    bool setParameters(
+        const Eigen::Matrix<double, 12, 12>& u_cov,
+        const Eigen::Matrix<double, 6, 6>& m_cov,
+        const int& freq);
+
+    /*
+     * @brief processNewMeasurement Process new measurements
+     *    from the mocap system
+     * @param m_attitude Measured attitude
+     * @param m_position Measured position
+     */
+    void processNewMeasurement(
+        const double& time,
+        const Eigen::Quaterniond& m_attitude,
+        const Eigen::Vector3d& m_position);
+
+    void publishMarkerPoints(
+        const double& time,
+        const std::vector<std::array<double,3>> marker_pos);
+
+    typedef boost::shared_ptr<Subject> SubjectPtr;
+    typedef const boost::shared_ptr<Subject> SubjectConstPtr;
+
+  private:
+    // Disable copy constructor and assign operator
+    Subject(const Subject&);
+    Subject& operator=(const Subject&);
+
+    // Name of the subject
+    std::string name;
+
+    // Error state Kalman filter
+    KalmanFilter kFilter;
+
+    // Tells the status of the object
+    Status status;
+
+    // Prevent cocurrent reading and writing of the class
+    boost::shared_mutex mtx;
+
+    // Publisher for the subject
+    std::shared_ptr<rclcpp::Node> nh_ptr;
+    std::string parent_frame;
+    rclcpp::Publisher<nav_msgs::msg::Odometry>::SharedPtr pub_filter;
+    rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pub_raw;
+    rclcpp::Publisher<geometry_msgs::msg::PoseArray>::SharedPtr pub_points_raw;
+};
 
 /*
  * @brief: MoCapDriverBase Base class for the drivers
@@ -214,7 +219,8 @@ class MoCapDriverBase{
     // Publish Marker points [Wind estimation Project]
     bool publish_pts;
     std::string fixed_frame_id;
-    tf::TransformBroadcaster tf_publisher;
+    // no sign of this tf broadcaster object being used in cpp
+    // tf2_ros::TransformBroadcaster tf_publisher;
 
 };
 }

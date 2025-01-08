@@ -8,9 +8,9 @@
   <license>Apache-2.0</license>
   <author>Ke Sun</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
   <depend>geometry_msgs</depend>
-  <depend>roscpp</depend>
+  <depend>rclcpp</depend>
   <depend>eigen_conversions</depend>
 
   <export>

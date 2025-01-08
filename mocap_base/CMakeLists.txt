@@ -38,11 +38,15 @@ add_library(mocap_base_driver
   src/MoCapDriverBase.cpp
 )
 
-target_link_libraries(mocap_base_driver
-  mocap_kalman_filter
+ament_target_dependencies(mocap_base_driver
+  rclcpp
+  geometry_msgs
+  tf2_eigen
+  nav_msgs
 )
 
-ament_target_dependencies(mocap_base_driver
+target_link_libraries(mocap_base_driver
+  mocap_kalman_filter
   rclcpp
   geometry_msgs
   tf2_eigen
@@ -52,9 +56,7 @@ ament_target_dependencies(mocap_base_driver
 install(TARGETS mocap_base_driver mocap_kalman_filter
   DESTINATION lib/${PROJECT_NAME}
 )
-install(DIRECTORY launch/
-  DESTINATION share/${PROJECT_NAME}
-)
+
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
