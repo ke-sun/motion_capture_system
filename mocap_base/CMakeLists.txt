@@ -23,19 +23,18 @@ include_directories(
 )
 
 # Kalman Filter Library
-add_library(mocap_kalman_filter
+add_library(mocap_kalman_filter SHARED
   src/KalmanFilter.cpp
 )
 
 target_link_libraries(mocap_kalman_filter
   ${Boost_LIBRARIES}
   Eigen3::Eigen
-  rclcpp
 )
 ament_target_dependencies(mocap_kalman_filter Eigen3 rclcpp)
 
 # MoCap Driver Library
-add_library(mocap_base_driver
+add_library(mocap_base_driver SHARED
   src/MoCapDriverBase.cpp
 )
 
@@ -49,18 +48,26 @@ ament_target_dependencies(mocap_base_driver
 
 target_link_libraries(mocap_base_driver
   mocap_kalman_filter
-  rclcpp
-  geometry_msgs
-  nav_msgs
 )
+ament_export_targets(export_mocap_base_driver HAS_LIBRARY_TARGET)
+ament_export_include_directories(include)
 
-install(TARGETS mocap_base_driver mocap_kalman_filter
-  DESTINATION lib/${PROJECT_NAME}
-)
 install(
   DIRECTORY include/
   DESTINATION include
 )
+
+install(
+  TARGETS mocap_base_driver mocap_kalman_filter
+  EXPORT export_mocap_base_driver
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin
+  INCLUDES DESTINATION include
+)
+
+
+
 
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
@@ -74,7 +81,6 @@ if(BUILD_TESTING)
   ament_lint_auto_find_test_dependencies()
 endif()
 
-ament_export_include_directories(include)
 ament_export_dependencies(${THIS_PACKAGE_INCLUDE_DEPENDS})
 ament_package()
 

@@ -5,6 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -L/install/mocap_base/lib/mocap_base/")
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
@@ -41,7 +42,12 @@ add_library(mocap_vicon_driver
   src/ViconDriver.cpp
 )
 
-ament_target_dependencies(mocap_vicon_driver mocap_base Eigen3 rclcpp tf2_eigen mocap_base geometry_msgs nav_msgs)
+target_include_directories(mocap_vicon_driver PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+ament_target_dependencies(mocap_vicon_driver mocap_base Eigen3 rclcpp tf2_eigen geometry_msgs nav_msgs)
 
 target_link_libraries(mocap_vicon_driver
   ViconDataStreamSDK_CPP
@@ -49,25 +55,28 @@ target_link_libraries(mocap_vicon_driver
   Eigen3::Eigen
 )
 
+install(TARGETS  mocap_vicon_driver 
+  DESTINATION lib
+)
+
 
 add_executable(mocap_vicon_node
   src/vicon.cpp
 )
-
-ament_target_dependencies(mocap_vicon_node Eigen3 rclcpp tf2_eigen  geometry_msgs nav_msgs)
 
 target_link_libraries(mocap_vicon_node
   mocap_vicon_driver
   ViconDataStreamSDK_CPP
   ${VICON_BOOST_LIBS}
   Eigen3::Eigen
+  
 )
+ 
+ament_target_dependencies(mocap_vicon_node mocap_base Eigen3 rclcpp tf2_eigen  geometry_msgs nav_msgs)
 
-
-install(TARGETS mocap_vicon_node mocap_vicon_driver 
-  DESTINATION lib/${PROJECT_NAME}
+install(TARGETS  mocap_vicon_node 
+  RUNTIME DESTINATION lib/mocap_vicon
 )
-
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)
   # the following line skips the linter which checks for copyrights
