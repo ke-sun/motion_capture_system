@@ -59,7 +59,6 @@ install(TARGETS  mocap_vicon_driver
   DESTINATION lib
 )
 
-
 add_executable(mocap_vicon_node
   src/vicon.cpp
 )
@@ -76,6 +75,10 @@ ament_target_dependencies(mocap_vicon_node mocap_base Eigen3 rclcpp tf2_eigen  g
 
 install(TARGETS  mocap_vicon_node 
   DESTINATION lib/${PROJECT_NAME}/
+)
+install(
+  DIRECTORY launch/
+  DESTINATION share/${PROJECT_NAME}/
 )
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

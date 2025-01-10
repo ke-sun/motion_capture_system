@@ -32,7 +32,7 @@ namespace mocap {
 
 bool ViconDriver::init() {
 
-  server_address = this->nh->declare_parameter<string>("server_address", string("alkaline2"));
+  server_address = this->nh->declare_parameter<string>("server_address", string("mocap.perch"));
   model_list = this->nh->declare_parameter<vector<string>>("model_list", vector<string>(0));
   frame_rate = this->nh->declare_parameter<int>("frame_rate", 100);
   max_accel = this->nh->declare_parameter<float>("max_accel", 10.0);
@@ -128,6 +128,16 @@ void ViconDriver::handleFrame() {
   for (int i = 0; i< body_count; ++i) {
     string subject_name =
       client->GetSubjectName(i).SubjectName;
+
+    // in ROS2, you cannot have an empty list, meaning the way we have to define
+    // one is by setting model_list = ['']
+    
+    if (model_set.size() == 1 ) {
+      if (auto search = model_set.find(""); search != model_set.end()) {
+        model_set.erase("");
+      }
+    }
+
 
     // Process the subject if required
     if (model_set.empty() || model_set.count(subject_name)) {
