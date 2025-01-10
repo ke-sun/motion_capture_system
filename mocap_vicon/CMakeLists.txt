@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.5)
+cmake_minimum_required(VERSION 3.8)
 project(mocap_vicon)
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -75,7 +75,7 @@ target_link_libraries(mocap_vicon_node
 ament_target_dependencies(mocap_vicon_node mocap_base Eigen3 rclcpp tf2_eigen  geometry_msgs nav_msgs)
 
 install(TARGETS  mocap_vicon_node 
-  RUNTIME DESTINATION lib/mocap_vicon
+  DESTINATION lib/${PROJECT_NAME}/
 )
 if(BUILD_TESTING)
   find_package(ament_lint_auto REQUIRED)

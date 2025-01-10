@@ -5,14 +5,16 @@
   <description>Base class for different motion capture systems</description>
 
   <maintainer email="sunke.polyu@gmail.com">Ke Sun</maintainer>
+  <maintainer email="kashishgarg9@gmail.com">Kashsh Garg</maintainer>
   <license>Apache-2.0</license>
   <author>Ke Sun</author>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
-  <depend>geometry_msgs</depend>
-  <depend>rclcpp</depend>
-  <depend>eigen_conversions</depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>rclcpp</exec_depend>
+  <exec_depend>eigen_conversions</exec_depend>
 
   <export>
+    <build_type>ament_cmake</build_type>
   </export>
 </package>

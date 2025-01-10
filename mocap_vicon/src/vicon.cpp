@@ -22,7 +22,7 @@
 int main(int argc, char *argv[]) {
 
   rclcpp::init(argc, argv);
-  std::shared_ptr<rclcpp::Node> nh;
+  std::shared_ptr<rclcpp::Node> nh = std::make_shared<rclcpp::Node>("vicon_node");
 
   mocap::ViconDriver driver(nh);
   if(!driver.init()) {
