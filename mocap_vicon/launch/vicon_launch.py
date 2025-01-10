@@ -15,6 +15,7 @@ def generate_launch_description():
                 {'publish_tf': False},
                 {'publish_pts': False},
                 {'fixed_frame_id': 'mocap'},
+                # Set to [''] to take in ALL models from Vicon
                 {'model_list': ['']},
             ],
             remappings=[
