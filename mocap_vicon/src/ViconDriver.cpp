@@ -260,6 +260,8 @@ void ViconDriver::handleSubject(const int& sub_idx) {
     pos_tf.setX(pos.x());
     pos_tf.setY(pos.y());
     pos_tf.setZ(pos.z());
+    pos_tf.setW(pos.w());
+
 
     // tf2::StampedTransform stamped_transform =
     //   tf2::StampedTransform(tf2::Transform(att_tf, pos_tf),
